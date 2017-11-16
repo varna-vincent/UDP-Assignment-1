@@ -50,7 +50,7 @@ int main() {
                 packet_length = buildRejectPacket(reject_packet, buffer);
 
             } else if(data_packet.length != data_packet.payload.length) {
-
+                
                 // Check Error Case - Length Mismatch
                 initializeRejectPacket(data_packet, &reject_packet, REJECT_LENGTH_MISMATCH);
                 packet_length = buildRejectPacket(reject_packet, buffer);

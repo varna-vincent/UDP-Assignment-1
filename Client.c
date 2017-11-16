@@ -15,7 +15,13 @@ int main() {
     struct reject_packets reject_packet;
     char buffer[1024];
     int segment_number = 1;
-    
+    int input;
+
+    printf("\nPress 0 to send 5 correct packets\n");
+    printf("\nPress 1 to send 1 correct packet and 4 wrong packets\nYour input = ");
+
+    scanf("%d", &input);
+    printf("%d\n", input);
     // Create client socket
     clientsocket = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -33,30 +39,44 @@ int main() {
     
     int packet_number = 1;
     while (packet_number <= 5) {
+        // Initialize data packet with  all 5 correct packets
+        if(input == 0) {
 
-        // Initialize data packet
-        data_packet.start_packet_id = START_PACKET_ID;
-        data_packet.client_id = 24;
-        data_packet.packet_type = DATA_PACKET;
-        if(packet_number == 5) {
-
-            // Assign wrong sequence number for 5th packet
-            data_packet.segment_no = segment_number + 10;
-        } else if(packet_number == 4) {
-
-            // Duplicate packet
-            data_packet.segment_no = 3;
-        } else {
+            data_packet.start_packet_id = START_PACKET_ID;
+            data_packet.client_id = 24;
+            data_packet.packet_type = DATA_PACKET;
             data_packet.segment_no = segment_number;
-        }
-        // Assign wrong length for 2nd packet
-        data_packet.length = (packet_number == 2) ? 8 : 5;
-        data_packet.payload.length = 5;
-        memcpy(data_packet.payload.data, "Hello", data_packet.payload.length);
-        data_packet.end_packet_id = END_PACKET_ID;
-        // NULL end packet id for 3rd packet
-        if(packet_number == 3) {
-            data_packet.end_packet_id = '\0';
+            data_packet.length = 5;
+            data_packet.payload.length = data_packet.length;
+            memcpy(data_packet.payload.data, "Hello", data_packet.payload.length);
+            data_packet.end_packet_id = END_PACKET_ID;
+
+        } else if(input == 1) {
+
+            // Initialize data packet with 1 correct packet and 4 error packets
+            data_packet.start_packet_id = START_PACKET_ID;
+            data_packet.client_id = 24;
+            data_packet.packet_type = DATA_PACKET;
+            if(packet_number == 5) {
+
+                // Assign wrong sequence number for 5th packet
+                data_packet.segment_no = segment_number + 10;
+            } else if(packet_number == 4) {
+
+                // Duplicate packet
+                data_packet.segment_no = 3;
+            } else {
+                data_packet.segment_no = segment_number;
+            }
+            // Assign wrong length for 2nd packet
+            data_packet.length = (packet_number == 2) ? 8 : 5;
+            data_packet.payload.length = 5;
+            memcpy(data_packet.payload.data, "Hello", data_packet.payload.length);
+            data_packet.end_packet_id = END_PACKET_ID;
+            // NULL end packet id for 3rd packet
+            if(packet_number == 3) {
+                data_packet.end_packet_id = '\0';
+            }
         }
 
         int packet_length = buildDataPacket(data_packet, buffer);
