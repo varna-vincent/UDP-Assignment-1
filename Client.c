@@ -21,7 +21,6 @@ int main() {
     printf("\nPress 1 to send 1 correct packet and 4 wrong packets\nYour input = ");
 
     scanf("%d", &input);
-    printf("%d\n", input);
     // Create client socket
     clientsocket = socket(AF_INET, SOCK_DGRAM, 0);
 

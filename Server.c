@@ -13,6 +13,12 @@ int main() {
     struct data_packets data_packet;
     struct ack_packets ack_packet;
     struct reject_packets reject_packet;
+    int input;
+
+    printf("\nPress 0 to simulate normal transmission\n");
+    printf("\nPress 1 to simulate re-transmission\nYour input = ");
+
+    scanf("%d", &input);
     
     serverSocket = socket(AF_INET, SOCK_DGRAM, 0);
     
@@ -34,59 +40,66 @@ int main() {
         int packet_length = 0;
 
         recvfrom(serverSocket, buffer, sizeof(buffer), 0, &sender, &sendsize);
-        
-        int response = decodeDataPacket(buffer, &data_packet);
 
-        current_segment_number++;
+        if(input == 0) {
+            // Normal packet transmission
+            
+            int response = decodeDataPacket(buffer, &data_packet);
 
-        if(response == 0) {
+            current_segment_number++;
 
-            printf("Received Packet %d , Expecting Packet %d\n", data_packet.segment_no, current_segment_number);
+            if(response == 0) {
 
-            // Check Error case - Packet out of sequence
-            if(data_packet.segment_no > current_segment_number) {
+                printf("Received Packet %d , Expecting Packet %d\n", data_packet.segment_no, current_segment_number);
 
-                initializeRejectPacket(data_packet, &reject_packet, REJECT_OUT_OF_SEQUENCE);
+                // Check Error case - Packet out of sequence
+                if(data_packet.segment_no > current_segment_number) {
+
+                    initializeRejectPacket(data_packet, &reject_packet, REJECT_OUT_OF_SEQUENCE);
+                    packet_length = buildRejectPacket(reject_packet, buffer);
+
+                } else if(data_packet.length != data_packet.payload.length) {
+
+                    // Check Error Case - Length Mismatch
+                    initializeRejectPacket(data_packet, &reject_packet, REJECT_LENGTH_MISMATCH);
+                    packet_length = buildRejectPacket(reject_packet, buffer);
+
+                } else if(data_packet.segment_no < current_segment_number) {
+
+                    // Check Error Case - Duplicate Packet
+                    initializeRejectPacket(data_packet, &reject_packet, REJECT_DUPLICATE_PACKET);
+                    packet_length = buildRejectPacket(reject_packet, buffer);
+
+                } else {
+
+                    //Initialize ACK packet
+                    ack_packet.start_packet_id = START_PACKET_ID;
+                    ack_packet.client_id = 24;
+                    ack_packet.packet_type = ACK_PACKET;
+                    ack_packet.received_segment_no = data_packet.segment_no;
+                    ack_packet.end_packet_id = END_PACKET_ID;
+
+                    packet_length = buildAckPacket(ack_packet, buffer);
+                    printf("Sending ACK\n");
+                }
+
+            } else if(response == REJECT_END_OF_PACKET_MISSING) {
+                //Check Error case 3 - End packet missing
+                printf("REJECT CODE - %x - REJECT_END_OF_PACKET_MISSING\n", REJECT_END_OF_PACKET_MISSING);
+
+                // Initialize END PACKET MISSING REJECT packet
+                initializeRejectPacket(data_packet, &reject_packet, REJECT_END_OF_PACKET_MISSING);
                 packet_length = buildRejectPacket(reject_packet, buffer);
+            } 
 
-            } else if(data_packet.length != data_packet.payload.length) {
-                
-                // Check Error Case - Length Mismatch
-                initializeRejectPacket(data_packet, &reject_packet, REJECT_LENGTH_MISMATCH);
-                packet_length = buildRejectPacket(reject_packet, buffer);
+            // Send ACK or REJECT packet to client. 
+            sendto(serverSocket, buffer, packet_length, 0, (struct sockaddr*)&sender, sendsize);
 
-            } else if(data_packet.segment_no < current_segment_number) {
-
-                // Check Error Case - Duplicate Packet
-                initializeRejectPacket(data_packet, &reject_packet, REJECT_DUPLICATE_PACKET);
-                packet_length = buildRejectPacket(reject_packet, buffer);
-
-            } else {
-
-                //Initialize ACK packet
-                ack_packet.start_packet_id = START_PACKET_ID;
-                ack_packet.client_id = 24;
-                ack_packet.packet_type = ACK_PACKET;
-                ack_packet.received_segment_no = data_packet.segment_no;
-                ack_packet.end_packet_id = END_PACKET_ID;
-
-                packet_length = buildAckPacket(ack_packet, buffer);
-                printf("Sending ACK\n");
-            }
-
-        } else if(response == REJECT_END_OF_PACKET_MISSING) {
-            //Check Error case 3 - End packet missing
-            printf("REJECT CODE - %x - REJECT_END_OF_PACKET_MISSING\n", REJECT_END_OF_PACKET_MISSING);
-
-            // Initialize END PACKET MISSING REJECT packet
-            initializeRejectPacket(data_packet, &reject_packet, REJECT_END_OF_PACKET_MISSING);
-            packet_length = buildRejectPacket(reject_packet, buffer);
-        } 
-
-        // Send ACK or REJECT packet to client. 
-        sendto(serverSocket, buffer, packet_length, 0, (struct sockaddr*)&sender, sendsize);
-
-        printf("\n\n");
+            printf("\n\n");
+        } else if(input == 1) {
+            // Simulate re-transmission
+            input = 0;
+        }
     }
 
     return 0;
