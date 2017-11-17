@@ -265,3 +265,13 @@ void initializeRejectPacket(struct data_packets data_packet, struct reject_packe
 
     printf("REJECT CODE - %x\n", reject_packet->reject_sub_code);
 }
+
+void printRejectCode(int reject_code) {
+    
+    switch(reject_code) {
+        case 0xfff4: printf("REJECT_OUT_OF_SEQUENCE\n"); break;
+        case 0xfff5: printf("REJECT_LENGTH_MISMATCH\n"); break;
+        case 0xfff6: printf("REJECT_END_OF_PACKET_MISSING\n"); break;
+        case 0xfff7: printf("REJECT_DUPLICATE_PACKET\n"); break;
+    }
+}
